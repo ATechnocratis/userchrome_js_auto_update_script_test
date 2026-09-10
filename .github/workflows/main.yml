@@ -1,0 +1,56 @@
+name: Release on file update
+
+on:
+  push:
+    paths:
+      - 'testScript.uc.js'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Extract version + commit info
+        id: info
+        run: |
+          FULL_MSG="${{ github.event.head_commit.message }}"
+          
+          # First line = title
+          TITLE=$(echo "$FULL_MSG" | head -n 1)
+          
+          # Body = everything after the first line
+          BODY=$(echo "$FULL_MSG" | tail -n +2)
+          
+          # This takes the first word that matches v.X.Y.Z style
+          RAW_VERSION=$(echo "$TITLE" | grep -oE '^v\.[0-9]+(\.[0-9]+)*' | head -n 1)
+          
+          if [ -z "$RAW_VERSION" ]; then
+            echo "Error version extract, got $TITLE"
+            exit 1
+          fi
+          
+          VERSION=$(echo "$RAW_VERSION" | sed 's/^v\./0./')
+          
+          # Export outputs
+          {
+            echo "title<<EOF"
+            echo "$TITLE"
+            echo "EOF"
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+            echo "version=$VERSION"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.info.outputs.version }}
+          name: ${{ steps.info.outputs.title }}
+          body: ${{ steps.info.outputs.body }}
+          files: testScript.uc.js
+        token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
