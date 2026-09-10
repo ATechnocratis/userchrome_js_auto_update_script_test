@@ -53,4 +53,5 @@ jobs:
           name: ${{ steps.info.outputs.title }}
           body: ${{ steps.info.outputs.body }}
           files: testScript.uc.js
-        token: ${{ secrets.CUSTOM_GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
